@@ -1,0 +1,51 @@
+version: '3'
+services:
+  db:
+    image: postgres:11.5-alpine
+    container_name: smzhack_db_1
+    ports:
+      - '5432:5432'
+    volumes:
+      - ${PWD}/db_scripts:/root/scripts
+    environment:
+      POSTGRES_PASSWORD: potato
+      POSTGRES_DB: GroFor
+      POSTGRES_USER: farmer
+    restart: on-failure
+
+
+  backend:
+    build: ./backend
+    container_name: smzhack_backend_1
+    environment:
+      - CONFIG_PATH=configure.ini
+      - FLASK_APP=main.py
+      # для отладки (при запуске в релиз убрать!)
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=True     # Позволяет отслеживать процесс работы приложения в командной строке
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app/backend
+    ports:
+      - "5000:5000"
+    command: flask run --host=0.0.0.0
+    # для релиза
+    # command: gunicorn -w 1 b 0.0.0.0:5000 main:app --reload
+    restart: always
+
+
+
+  # frontend:
+  #   build: ./frontend
+  #   volumes:
+  #     - ./frontend:/app/frontend
+  #     # One-way volume to use node_modules from inside image
+  #     - /app/node_modules
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=development
+  #   depends_on:
+  #     - backend
+  #   command: npm start
